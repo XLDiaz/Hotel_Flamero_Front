@@ -176,7 +176,7 @@ def new_data_to_model(df, _obj, _use_cols = use_cols):
 
 #Funci�n para predercir la probabilidad de cancelaci�n de una reserva con un modelo determinado
 def predict_cancel_prob(X):
-    model = joblib.load("cls_random_forest.pkl")
+    model = joblib.load("cls_compress_random_forest.pkl")
     return model.predict_proba(X[-1].reshape(1, -1))[0,1]
 
     #Predecimos la probabilidad de cancelaci�n de la nueva reserva
