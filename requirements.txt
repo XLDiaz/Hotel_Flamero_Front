@@ -8,5 +8,4 @@ nltk==3.8.1
 numpy==1.23.0
 openai==0.28.1
 streamlit-chat
-json
 translate==3.6.1
