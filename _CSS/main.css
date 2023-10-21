@@ -1,8 +1,8 @@
 /* Style the header */
 .comment_header {
     padding: 10px 16px;
-    background: #262730;
-    color: #262730;
+    background: hsl(0, 0%, 100%);
+    color: #d7d8e1;
 }
 
   /* Page content */
@@ -24,7 +24,7 @@
 /* Chat containers */
 .comment_container {
     border: 2px solid #9b9595;
-    background-color: #060606;
+    background-color: #ffffff;
     border-radius: 25px;
     padding: 10px;
     margin: 10px 0;
@@ -57,7 +57,7 @@
 
 
 .badge {
-    background-color: #17115C;
+    background-color: #c66d6d;
     color: white;
     padding: 20px 20px;
     text-align: center;
@@ -89,7 +89,7 @@
 }
 
 .comment_section {
-    background: #17115C;
+    background: #ecb9b9;
     height: 350px;
     overflow-y: scroll ;
 }

@@ -37,35 +37,9 @@ def load_booking_data():
     return reservas_total
 
 
-def train_model(data, _Y_use_cols, Reg_Cls_flag = True, _X_use_cols=use_cols ):
-    #Definimos las variables que usaremos en el modelo
-
-    #Dividimos en X e y
-    _X = data[_X_use_cols]
-    _y = data[_Y_use_cols ]
-    _X = pd.get_dummies(_X, columns=["Tip_Hab_Fra", "R_Factura","Horario_Venta", "Mes_Entrada", "Mes_Venta"], drop_first=True)
-    robust_scaler = RobustScaler()
-    _X[["P_Alojamiento", "Antelacion"]] = robust_scaler.fit_transform(_X[["P_Alojamiento", "Antelacion"]])
-    # Inicializamos el escalador Min-Max
-    scaler = MinMaxScaler()
-    # Aplicamos la normalización
-    _X = scaler.fit_transform(_X)
-
-    # Dividimos el conjunto normalizado de datos en entrenamiento, prueba y validación
-    X_train, X_test, y_train, y_test = train_test_split(_X,_y, test_size=0.2, random_state=42)
-
-    if Reg_Cls_flag:
-        model = RandomForestRegressor(max_depth= 19, n_estimators= 50)
-    else:
-        model = RandomForestClassifier(n_estimators=100, criterion='gini', max_features='sqrt',
-                                    bootstrap=True, max_samples=2/3, oob_score=True)
-    model.fit(X_train, y_train)
-
-    return model
-
 
 # Recopilar datos de la nueva reserva:
-def new_Booking(df, room_type, noches, adultos, child, cunas, fecha_entrada, fecha_venta):
+def new_Booking(df, room_type, noches, adultos, child, cunas, fecha_entrada, fecha_venta, regimen):
     
     def get_horario():
         hora = int(datetime.now().strftime('%H'))
@@ -117,24 +91,16 @@ def new_Booking(df, room_type, noches, adultos, child, cunas, fecha_entrada, fec
 
     av_regimen = df["R_Factura"].loc[df['Tip_Hab_Fra']== room_type].value_counts(normalize=True)
     regimen = random.choices(av_regimen.index, av_regimen.values, k=1)
-    precio_alojamiento=df['P_Alojamiento'].loc[df['Tip_Hab_Fra'] == room_type].mean()
+    precio_alojamiento = int(df['P_Alojamiento'].loc[df['Tip_Hab_Fra'] == room_type].mean()/df['Noches'].loc[df['Tip_Hab_Fra'] == room_type].mean())*noches
     precio_desayuno=df['P_Desayuno'].loc[df['R_Factura'] == regimen[0]].mean()
     precio_almuerzo=df['P_Almuerzo'].loc[df['R_Factura'] == regimen[0]].mean()
     precio_cena= df['P_Cena'].loc[df['R_Factura'] == regimen[0]].mean()
-    
-    # precio_total=precio_alojamiento+precio_desayuno+precio_almuerzo+precio_cena
 
-
-
-
-
-
-    fecha_reserva = datetime.now()
 
     obj = {
     "Noches": noches,
     "Tip_Hab_Fra" : room_type,
-    "R_Factura": regimen[0],
+    "R_Factura": regimen,
     "AD": adultos,
     "NI":child,
     "CU":cunas,
@@ -146,7 +112,7 @@ def new_Booking(df, room_type, noches, adultos, child, cunas, fecha_entrada, fec
     "Cantidad_Habitaciones": habitaciones(adultos,child,room_type),
     'Mes_Entrada' : fecha_entrada.strftime('%B'),
     'Mes_Venta': fecha_venta.strftime('%B'),
-    'Antelacion': (fecha_entrada-fecha_reserva).days
+    'Antelacion': (fecha_entrada-fecha_venta).days
     }
 
 
@@ -182,45 +148,42 @@ def predict_cancel_prob(X):
     #Predecimos la probabilidad de cancelaci�n de la nueva reserva
 
 #Fecha maxima para cancelar
-def cancel_date(X, _obj):
+def cancel_date(X, _obj, fecha_venta):
     model = joblib.load("reg_random_forest.pkl")
 
     _score = model.predict(X[-1].reshape(1, -1))
     # pred=predict_model(model,obj)
-    _days = float(_score)*_obj["Antelacion"]
+    _days = (1 - float(_score))*_obj["Antelacion"]
 
-
-    # Obtener la fecha actual del sistema
-    fecha_actual = datetime.now()
 
     # Sumar d�as a la fecha actual
-    _cancel_date = fecha_actual + timedelta(_days)
+    _cancel_date = fecha_venta + timedelta(_days)
     _cancel_date = _cancel_date.strftime("%d/%m/%Y")
 
     return _cancel_date, _score[0]
 
 def fix_cuote(_cancel_prob, _score):
-    if _cancel_prob <= 0.50:
+    if _cancel_prob <= 0.25:
         return 0
-    elif _cancel_prob > 0.75:
+    elif _cancel_prob > 0.60:
         return 0.5
     else:
         return _score*0.5*_cancel_prob
 
 
 
-def predictions(room_type, noches, adultos, child, cunas, fecha_entrada, fecha_venta):
+def predictions(room_type, noches, adultos, child, cunas, fecha_entrada, fecha_venta, regimen):
     cancel_data = load_cancel_data()
     reservas = load_booking_data()
 
-    obj = new_Booking(reservas, room_type, noches, adultos, child, cunas, fecha_entrada, fecha_venta)
+    obj = new_Booking(reservas, room_type, noches, adultos, child, cunas, fecha_entrada, fecha_venta, regimen)
 
     X_booking = new_data_to_model(reservas, obj)
 
     X_cancel = new_data_to_model(cancel_data, obj)
 
     cancel_prob = predict_cancel_prob(X_booking)
-    c_date, score = cancel_date(X_cancel, obj)
+    c_date, score = cancel_date(X_cancel, obj, fecha_venta)
 
     cuota = fix_cuote(cancel_prob, score)
 
@@ -256,25 +219,6 @@ def stentiment_analizis(_text):
 
     return sentimiento['compound']
 
-
-# def cat_raiting(_text, score):
-#     categorias = ["Limpieza", "Confort", "Ubicación", "Instalaciones", "Personal"]
-
-#     classifier = pipeline("zero-shot-classification")
-#                         # model="facebook/bart-large-mnli",
-#                         # revision = "c626438")
-#     joblib.dump(classifier, "cero_shut_classifier.pkl")
-
-#     resultados = classifier(_text, categorias)
-
-#     with open("_Data/obj.json") as file:
-#         obj = json.load(file)
-#         file.close()
-#     obj[resultados['labels'][0]]["len"] = obj[resultados['labels'][0]]["len"]+1
-#     obj[resultados['labels'][0]]["Score"] = (obj[resultados['labels'][0]]["Score"]*obj[resultados['labels'][0]]["len"] + score)/obj[resultados['labels'][0]]["len"]
-
-#     obj['General']["len"] = obj['General']["len"] + 1
-#     obj['General']["Score"] = (obj['General']["Score"] * obj['General']["len"] + score)/obj['General']["len"]
 
 def update_comments_data(_obj):
     df_comments = pd.concat([pd.DataFrame(_obj,index=[0]), pd.read_csv("_Data/comments.csv")])

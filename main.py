@@ -23,24 +23,34 @@ from _Func.data_manage_and_models import predictions
 from _Func.data_manage_and_models import get_chat_response
 from _Func.data_manage_and_models import chatbot_env
 
+
 with open("_Data/room_type.json", encoding='utf-8') as file:
     room_type_obj = json.load(file)
     file.close()
+
+with open("_Data/raitings.json", encoding='utf-8') as file:
+    raitings_obj = json.load(file)
+    file.close()
+
+with open("_Data/regimen.json", encoding='utf-8') as file:
+    regimen = json.load(file)
+    file.close()
+
+def add_style(css_file):
+    with open(css_file) as file:
+        st.markdown(f"<style>{file.read()}</style>", unsafe_allow_html=True)
+
 
 
 st.set_page_config(layout= "wide",
                     page_title = "FlameroHotel")
 
 
-def add_style(css_file):
-    with open(css_file) as file:
-        st.markdown(f"<style>{file.read()}</style>", unsafe_allow_html=True)
+
 
 add_style("_CSS/main.css")
 
-with open("_Data/obj.json") as file:
-    obj = json.load(file)
-    file.close()
+
 
 c_main = st.container()
 
@@ -75,7 +85,7 @@ if page_selected == "Flamero":
         fecha_venta = pd.to_datetime(c_body.date_input(label = "QUe dia es hoy (Funcionalidad disponible solo para la presentación para cambiar el dia de en que se reserva):",
 
                 max_value=pd.to_datetime('30/9/2024',dayfirst=True),
-                on_change=None), dayfirst=True)
+                on_change=None, format="DD/MM/YYYY"), dayfirst=True)
         
         col_1, col_2, col_3 = c_body.columns(3)
 
@@ -99,6 +109,12 @@ if page_selected == "Flamero":
                             ['DOBLE SUPERIOR COTO', 'DOBLE SUPERIOR MAR', 'DELUXE VISTA COTO', 'ESTUDIO COTO', 'ESTUDIO MAR', 'SUITE'])
         
         room_type = room_type_obj[room_type_id_pointer]["ID"]
+
+        regimen_pointer = col_2.radio('Seleccione un tipo de pensiónm que desea:',
+                list(regimen.keys()))
+        
+        pension = regimen[regimen_pointer]
+
         
         submitted = st.form_submit_button("Submit")
 
@@ -107,31 +123,15 @@ if page_selected == "Flamero":
         
         if submitted:
             with st.spinner("Espera..."):
-            
                 msg = st.toast('"Recopilando Información"...')
                 time.sleep(2)
-                # cancel_data = load_cancel_data()
-                # reservas = load_booking_data()
-
                 msg.toast("Chequeando disponibilidad...")
                 time.sleep(2)
-                # obj = new_Booking(reservas, room_type, noches, adultos, child, cunas, entry_date)
-
-                # X_booking = new_data_to_model(reservas, obj)
-
-                # X_cancel = new_data_to_model(cancel_data, obj)
-
                 msg.toast("Chequeando disponibilidad...")
                 time.sleep(2)
-
-                # cancel_prob = predict_cancel_prob(X_booking)
-                # cancel_date, score = cancel_date(X_cancel, obj)
-
                 msg.toast("Estas de suerte!! Ahora buscaremos lahabitacione adecuada...")
-
-                # cuota = fix_cuote(cancel_prob, score)
                 time.sleep(2)
-                cancel_prob, c_date, cuota, obj, score = predictions(room_type, noches, adultos, child, cunas, entry_date, fecha_venta )
+                cancel_prob, c_date, cuota, obj, score = predictions(room_type, noches, adultos, child, cunas, entry_date, fecha_venta, pension )
 
                 st.success("Tenemos la habitación adecuada para ti", icon="✅")
             c_room_info = st.expander("Ver Habitación")
@@ -143,6 +143,7 @@ if page_selected == "Flamero":
                 info_col.markdown(f"<h3>Precio de la estancia:</h3> €{round(obj['P_Alojamiento'], 2)}", unsafe_allow_html=True)
                 info_col.markdown(f"<h3>Probabilidad de Cancelación:</h3> {round(cancel_prob*100, 2)}%", unsafe_allow_html=True)
                 info_col.markdown(f"<h3>Pago adelantado:</h3> €{round(cuota*obj['P_Alojamiento'] , 2)}", unsafe_allow_html=True)
+                
                 info_col.markdown(f"<h3>Cancelación Gratuita Hasta:</h3> {c_date}", unsafe_allow_html=True)
                 info_col.markdown(f"<h3>Cancel_Score:</h3> {round(score, 2)}", unsafe_allow_html=True)
 
@@ -158,7 +159,7 @@ elif page_selected == "Opiniones":
         c_body.divider()
         col_raitings, comments_section = c_body.columns((1,2), gap="small" )
         col_raitings.markdown("<h2>Raitings:</h2>", unsafe_allow_html=True)
-        for key, value in list(obj.items()):
+        for key, value in list(raitings_obj.items()):
             c_raitings = col_raitings.container()
             list , badge = c_raitings.columns(2)
             list.markdown(f"<h4>{key}</h4>", unsafe_allow_html=True)
@@ -183,7 +184,7 @@ elif page_selected == "Opiniones":
                                         min_value=0))
                 submit_com = st.form_submit_button("Enviar")
     if submit_com and text_comment != "":
-        # cat_raiting(text_comment, raiting)
+
         update_comments_data({"Score": raiting,
                             "Comentario_Positivo":text_comment,
                             "Usuario":user})
