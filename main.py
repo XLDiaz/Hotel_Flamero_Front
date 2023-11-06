@@ -31,7 +31,7 @@ with open("_Data/Ratings.json", encoding='utf-8') as file:
     raitings_obj = json.load(file)
     file.close()
 
-with open("_Data/Regimen.json", encoding='utf-8') as file:
+with open("_Data/regimen.json", encoding='utf-8') as file:
     regimen = json.load(file)
     file.close()
 
