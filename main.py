@@ -87,10 +87,8 @@ if page_selected == "Flamero":
 
         child = int(col_3.number_input('Cantidad de menores de edad:',min_value=0))
 
-        if col_3.checkbox("Necesita cunas en la habitacion?", disabled=bool(not child)):
-            cunas = int(col_3.number_input('Cuantas?:',min_value=1))
-        else:
-            cunas = 0
+        cunas = int(col_3.number_input('Necesita cunas en la habitacion?:',min_value=1))
+
 
         if child>0:
             room_type_id_pointer = col_1.radio('Seleccione un tipo de habitacion que desea:',
