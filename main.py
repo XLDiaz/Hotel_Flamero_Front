@@ -2,7 +2,6 @@ import streamlit as st
 from streamlit_option_menu import option_menu
 from streamlit_chat import message
 
-from translate import Translator
 
 from PIL import Image
 
@@ -24,15 +23,15 @@ from _Func.data_manage_and_models import get_chat_response
 from _Func.data_manage_and_models import chatbot_env
 
 
-with open("_Data/room_type.json", encoding='utf-8') as file:
+with open("_Data/Room_Type.json", encoding='utf-8') as file:
     room_type_obj = json.load(file)
     file.close()
 
-with open("_Data/raitings.json", encoding='utf-8') as file:
+with open("_Data/Ratings.json", encoding='utf-8') as file:
     raitings_obj = json.load(file)
     file.close()
 
-with open("_Data/regimen.json", encoding='utf-8') as file:
+with open("_Data/Regimen.json", encoding='utf-8') as file:
     regimen = json.load(file)
     file.close()
 
@@ -45,23 +44,16 @@ def add_style(css_file):
 st.set_page_config(layout= "wide",
                     page_title = "FlameroHotel")
 
-
-
-
 add_style("_CSS/main.css")
 
-
-
 c_main = st.container()
-
 c_body = c_main.container()
-
 
 with st.sidebar:
     page_selected = option_menu(
-    menu_title="Menu",
-    options=["Flamero", "Opiniones", "ChatBot"],
-    default_index=0,
+                    menu_title="Menu",
+                    options=["Flamero", "Opiniones", "ChatBot"],
+                    default_index=0,
     )
 
 
@@ -131,7 +123,7 @@ if page_selected == "Flamero":
                 time.sleep(2)
                 msg.toast("Estas de suerte!! Ahora buscaremos lahabitacione adecuada...")
                 time.sleep(2)
-                cancel_prob, c_date, cuota, obj, score = predictions(room_type, noches, adultos, child, cunas, entry_date, fecha_venta, pension )
+                cancel_prob, c_date, cuota, obj, score, statement = predictions(room_type, noches, adultos, child, cunas, entry_date, fecha_venta, pension )
 
                 st.success("Tenemos la habitación adecuada para ti", icon="✅")
             c_room_info = st.expander("Ver Habitación")
@@ -142,10 +134,11 @@ if page_selected == "Flamero":
                 info_col.divider()
                 info_col.markdown(f"<h3>Precio de la estancia:</h3> €{round(obj['P_Alojamiento'], 2)}", unsafe_allow_html=True)
                 info_col.markdown(f"<h3>Probabilidad de Cancelación:</h3> {round(cancel_prob*100, 2)}%", unsafe_allow_html=True)
-                info_col.markdown(f"<h3>Pago adelantado:</h3> €{round(cuota*obj['P_Alojamiento'] , 2)}", unsafe_allow_html=True)
+                info_col.markdown(f"{statement}")
                 
-                info_col.markdown(f"<h3>Cancelación Gratuita Hasta:</h3> {c_date}", unsafe_allow_html=True)
+                info_col.markdown(f"<h3>Fecha Cancelación Gratuita:</h3> {c_date}", unsafe_allow_html=True)
                 info_col.markdown(f"<h3>Cancel_Score:</h3> {round(score, 2)}", unsafe_allow_html=True)
+                info_col.markdown(f"<h3>Cuota de Cancelación Tradía:</h3> €{round(cuota*obj['P_Alojamiento'] , 2)}", unsafe_allow_html=True)
 
                 # Columna de Desceipcion de la Habitación
                 room_img =  Image.open(f"{room_type_obj[room_type_id_pointer]['img_path']}")
@@ -158,7 +151,7 @@ elif page_selected == "Opiniones":
         st.image(img2, use_column_width = "always" )
         c_body.divider()
         col_raitings, comments_section = c_body.columns((1,2), gap="small" )
-        col_raitings.markdown("<h2>Raitings:</h2>", unsafe_allow_html=True)
+        col_raitings.markdown("<h2>Ratings:</h2>", unsafe_allow_html=True)
         for key, value in list(raitings_obj.items()):
             c_raitings = col_raitings.container()
             list , badge = c_raitings.columns(2)
@@ -235,7 +228,7 @@ elif page_selected == "ChatBot":
                 with st.chat_message("assistant"):
                     message_placeholder = st.empty()
                     full_response = ""
-                    respuesta = Translator(to_lang="es").translate(get_chat_response(prompt))
+                    respuesta = get_chat_response(prompt)
 
                     for chunk in respuesta.split():
                         full_response += chunk + " "

@@ -143,17 +143,21 @@ def new_data_to_model(df, _obj, _use_cols = use_cols):
 #Funci�n para predercir la probabilidad de cancelaci�n de una reserva con un modelo determinado
 def predict_cancel_prob(X):
     model = joblib.load("cls_random_forest.pkl")
-    return model.predict_proba(X[-1].reshape(1, -1))[0,1]
+    cancel_prob = model.predict_proba(X[-1].reshape(1, -1))[0,1]
+    return cancel_prob
 
     #Predecimos la probabilidad de cancelaci�n de la nueva reserva
 
 #Fecha maxima para cancelar
-def cancel_date(X, _obj, fecha_venta):
+def cancel_date(X, _obj, fecha_venta, cancel_prob):
     model = joblib.load("reg_random_forest.pkl")
 
     _score = model.predict(X[-1].reshape(1, -1))
     # pred=predict_model(model,obj)
-    _days = (1 - float(_score))*_obj["Antelacion"]
+    if cancel_prob >= 0.25:
+        _days = (1 - float(_score))*_obj["Antelacion"]
+    else:
+        _days = (1 - float(cancel_prob))*_obj["Antelacion"]
 
 
     # Sumar d�as a la fecha actual
@@ -164,11 +168,11 @@ def cancel_date(X, _obj, fecha_venta):
 
 def fix_cuote(_cancel_prob, _score):
     if _cancel_prob <= 0.25:
-        return 0
+        return 0.15, "Probabilidad de cancelación Baja"
     elif _cancel_prob > 0.60:
-        return 0.5
+        return 0.50, "Probabilidad de cancelación Alta"
     else:
-        return _score*0.5*_cancel_prob
+        return 0.7674 *_cancel_prob + 0.0372, "Probabilidad de cancelación Moderada"
 
 
 
@@ -183,11 +187,11 @@ def predictions(room_type, noches, adultos, child, cunas, fecha_entrada, fecha_v
     X_cancel = new_data_to_model(cancel_data, obj)
 
     cancel_prob = predict_cancel_prob(X_booking)
-    c_date, score = cancel_date(X_cancel, obj, fecha_venta)
+    c_date, score = cancel_date(X_cancel, obj, fecha_venta, cancel_prob)
 
-    cuota = fix_cuote(cancel_prob, score)
+    cuota, statement = fix_cuote(cancel_prob, score)
 
-    return cancel_prob, c_date, cuota, obj, score
+    return cancel_prob, c_date, cuota, obj, score, statement
 
 def stentiment_analizis(_text):
 
@@ -225,7 +229,7 @@ def update_comments_data(_obj):
     df_comments.to_csv("_Data/comments.csv", index=False)
 
 
-with open("_Data/entorno_chatbot.json") as file:
+with open("_Data/Entorno_Chatbot.json") as file:
     env = json.load(file)
     file.close()
 
