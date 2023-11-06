@@ -23,7 +23,7 @@ from _Func.data_manage_and_models import get_chat_response
 from _Func.data_manage_and_models import chatbot_env
 
 
-with open("_Data/Room_Type.json", encoding='utf-8') as file:
+with open("_Data/room_type.json", encoding='utf-8') as file:
     room_type_obj = json.load(file)
     file.close()
 
