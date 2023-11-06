@@ -229,7 +229,7 @@ def update_comments_data(_obj):
     df_comments.to_csv("_Data/comments.csv", index=False)
 
 
-with open("_Data/Entorno_Chatbot.json") as file:
+with open("_Data/entorno_chatbot.json") as file:
     env = json.load(file)
     file.close()
 
